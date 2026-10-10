@@ -66,13 +66,26 @@ Gestão comercial. O dashboard deve ser entendido sem explicação: números em 
 - **Participação:** rosca com os 5 maiores e "Outros". Com um laboratório filtrado, mostra o laboratório contra o resto do mercado.
 - A cor de cada laboratório é fixa dentro do ano (segue o laboratório, não a posição no gráfico).
 
-### 5.4 Resumo comentado (até 6 cartões)
+### 5.4 Quem mais cresce (ranking de crescimento)
+Tabela com os laboratórios que mais crescem (ou mais caem). Usa o ano e o mês do topo e tem filtros próprios:
+- **Comparar com:**
+  - **Mesmo período do ano anterior** (padrão). Com um mês filtrado, compara só aquele mês.
+  - **Mês anterior.** Usa o mês filtrado ou, se nenhum estiver filtrado, o último mês com dados. Em janeiro, compara com dezembro do ano anterior.
+  - **2º semestre vs 1º semestre** do ano selecionado.
+- **Mostrar:** os que mais crescem ou os que mais caem.
+- **Ordenar por:** variação em R$ ou em %. Na ordenação por %, laboratórios sem faturamento no período base ("novos") ficam de fora, e o rodapé informa quantos são.
+- **Porte mínimo:** ignora laboratórios pequenos, que distorcem o %. O critério é o maior faturamento entre os dois períodos. Opções: Todos, R$ 10 mil, R$ 50 mil (padrão) e R$ 200 mil.
+- **Quantidade:** 10, 20 ou 50.
+- Colunas: posição, laboratório, valor antes, valor depois, variação em R$, variação em % e uma barra proporcional.
+- Com um laboratório filtrado no topo, ele fica destacado na lista. Se estiver fora do top, aparece no fim com a posição dele.
+
+### 5.5 Resumo comentado (até 6 cartões)
 - **Mês atípico (amarelo):** total do mês abaixo da metade da mediana do ano. Sinaliza planilha incompleta.
 - **Queda (vermelho):** último mês com dados menor que o primeiro.
 - **Instabilidade (amarelo):** último mês 25% ou mais abaixo do pico do ano.
 - **Destaque (verde):** crescimento acima de R$ 50.000 entre o primeiro e o último mês.
 
-### 5.5 Tabela detalhada
+### 5.6 Tabela detalhada
 - Colunas: Laboratório, Mês, Faturamento, % do mês e Variação vs mês anterior.
 - Ordenada do maior para o menor, com 15 linhas por página.
 

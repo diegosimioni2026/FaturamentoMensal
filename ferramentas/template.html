@@ -92,6 +92,16 @@
   .paginacao { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; margin-top: 12px; color: var(--muted); font-size: 13px; }
   .paginacao div { display: flex; gap: 8px; }
   footer { color: var(--muted); font-size: 12px; text-align: center; padding-bottom: 24px; }
+
+  .cresc-filtros { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: flex-end; margin-bottom: 14px; }
+  .cresc-filtros label { display: flex; flex-direction: column; gap: 2px; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .cresc-filtros select { min-width: 0; }
+  .periodo { color: var(--text-2); font-size: 13px; margin: -6px 0 12px; }
+  .barra-cel { width: 28%; min-width: 120px; }
+  .barra { height: 10px; border-radius: 0 4px 4px 0; min-width: 2px; }
+  .barra.up { background: #3987e5; } .barra.down { background: #e66767; }
+  tr.selecionado td { background: rgba(57,135,229,0.12); }
+  td.pos { color: var(--muted); width: 32px; }
 </style>
 </head>
 <body>
@@ -153,6 +163,56 @@
       <p class="desc" id="g2Desc"></p>
       <div class="canvas-box baixo"><canvas id="g2" role="img" aria-label="Gráfico do faturamento total por mês"></canvas></div>
     </div>
+  </section>
+
+  <section class="card" id="crescimento">
+    <h2>Quem mais cresce</h2>
+    <p class="desc">Ranking de laboratórios por variação de faturamento. Usa o ano e o mês escolhidos no topo.</p>
+    <div class="cresc-filtros">
+      <label>Comparar com
+        <select id="cModo">
+          <option value="ano">Mesmo período do ano anterior</option>
+          <option value="mes">Mês anterior</option>
+          <option value="semestre">2º semestre vs 1º semestre</option>
+        </select>
+      </label>
+      <label>Mostrar
+        <select id="cDirecao">
+          <option value="up">Os que mais crescem</option>
+          <option value="down">Os que mais caem</option>
+        </select>
+      </label>
+      <label>Ordenar por
+        <select id="cMetrica">
+          <option value="reais">Crescimento em R$</option>
+          <option value="pct">Crescimento em %</option>
+        </select>
+      </label>
+      <label>Porte mínimo
+        <select id="cMinimo">
+          <option value="0">Todos</option>
+          <option value="10000">A partir de R$ 10 mil</option>
+          <option value="50000" selected>A partir de R$ 50 mil</option>
+          <option value="200000">A partir de R$ 200 mil</option>
+        </select>
+      </label>
+      <label>Quantidade
+        <select id="cQtd">
+          <option>10</option><option>20</option><option>50</option>
+        </select>
+      </label>
+    </div>
+    <p class="periodo" id="cPeriodo"></p>
+    <div class="tabela-box">
+      <table>
+        <thead><tr>
+          <th>#</th><th>Laboratório</th><th class="num" id="cThBase">Antes</th><th class="num" id="cThAtual">Depois</th>
+          <th class="num">Variação R$</th><th class="num">Variação %</th><th id="cThBarra"></th>
+        </tr></thead>
+        <tbody id="cBody"></tbody>
+      </table>
+    </div>
+    <p class="periodo" id="cRodape" style="margin:10px 0 0"></p>
   </section>
 
   <section class="card">
@@ -556,6 +616,115 @@ function renderTabela() {
 $("btnAnt").addEventListener("click", () => { pagina--; renderTabela(); });
 $("btnProx").addEventListener("click", () => { pagina++; renderTabela(); });
 
+// ---------- ranking de crescimento ----------
+const somaPor = (filtro) => {
+  const t = {};
+  REG.forEach(r => { if (filtro(r)) t[r.lab] = (t[r.lab] || 0) + r.valor; });
+  return t;
+};
+const nomeMeses = (ano, meses) => meses.length === 1 ? `${MES_CURTO[meses[0] - 1]}/${ano}`
+  : `${MES_CURTO[meses[0] - 1]}–${MES_CURTO[meses[meses.length - 1] - 1]}/${ano}`;
+
+// Define os dois períodos comparados (base = antes, atual = depois) conforme o modo e os filtros do topo.
+function periodosCrescimento(f, modo) {
+  const meses = mesesDoAno(f.ano);
+  if (modo === "ano") {
+    if (!ANOS.includes(f.ano - 1)) return { erro: `Não há dados de ${f.ano - 1} para comparar.` };
+    const ms = f.mes ? [f.mes] : meses;
+    return {
+      base: r => r.ano === f.ano - 1 && ms.includes(r.mes), atual: r => r.ano === f.ano && ms.includes(r.mes),
+      rotBase: nomeMeses(f.ano - 1, ms), rotAtual: nomeMeses(f.ano, ms),
+    };
+  }
+  if (modo === "mes") {
+    const alvo = f.mes || meses[meses.length - 1];
+    const i = meses.indexOf(alvo);
+    let anoB = f.ano, mesB = meses[i - 1];
+    if (i === 0) {
+      if (!mesesDoAno(f.ano - 1).includes(12)) return { erro: `Não há mês anterior a ${MESES[alvo - 1]}/${f.ano} nos dados.` };
+      anoB = f.ano - 1; mesB = 12;
+    }
+    return {
+      base: r => r.ano === anoB && r.mes === mesB, atual: r => r.ano === f.ano && r.mes === alvo,
+      rotBase: nomeMeses(anoB, [mesB]), rotAtual: nomeMeses(f.ano, [alvo]),
+    };
+  }
+  const s1 = meses.filter(m => m <= 6), s2 = meses.filter(m => m > 6);
+  if (!s1.length || !s2.length) return { erro: `${f.ano} ainda não tem dados nos dois semestres.` };
+  return {
+    base: r => r.ano === f.ano && s1.includes(r.mes), atual: r => r.ano === f.ano && s2.includes(r.mes),
+    rotBase: nomeMeses(f.ano, s1), rotAtual: nomeMeses(f.ano, s2),
+  };
+}
+
+function atualizarCrescimento() {
+  const f = filtros();
+  const modo = $("cModo").value, sobe = $("cDirecao").value === "up", porPct = $("cMetrica").value === "pct";
+  const minimo = +$("cMinimo").value, qtd = +$("cQtd").value;
+  const tb = $("cBody");
+  tb.innerHTML = "";
+  $("cRodape").textContent = "";
+  $("cMetrica").options[0].textContent = sobe ? "Crescimento em R$" : "Queda em R$";
+  $("cMetrica").options[1].textContent = sobe ? "Crescimento em %" : "Queda em %";
+
+  const p = periodosCrescimento(f, modo);
+  const linhaVazia = txt => {
+    const tr = document.createElement("tr"), c = document.createElement("td");
+    c.colSpan = 7; c.className = "vazio"; c.textContent = txt; tr.appendChild(c); tb.appendChild(tr);
+  };
+  if (p.erro) { $("cPeriodo").textContent = ""; linhaVazia(p.erro); return; }
+
+  $("cPeriodo").textContent = `Comparando ${p.rotAtual} com ${p.rotBase}.` + (modo === "semestre" && f.mes ? " O filtro de mês não se aplica nesta comparação." : "");
+  $("cThBase").textContent = p.rotBase;
+  $("cThAtual").textContent = p.rotAtual;
+  $("cThBarra").textContent = porPct ? "Variação %" : "Variação R$";
+
+  const base = somaPor(p.base), atual = somaPor(p.atual);
+  const todos = [...new Set([...Object.keys(base), ...Object.keys(atual)])].map(lab => {
+    const a = base[lab] || 0, b = atual[lab] || 0;
+    return { lab, a, b, dif: b - a, pct: a > 0 ? b / a - 1 : null };
+  }).filter(x => Math.max(x.a, x.b) >= minimo && x.dif !== 0);
+
+  let lista = todos.filter(x => sobe ? x.dif > 0 : x.dif < 0);
+  const novos = porPct ? lista.filter(x => x.pct === null).length : 0;
+  if (porPct) lista = lista.filter(x => x.pct !== null);
+  const chave = x => porPct ? x.pct : x.dif;
+  lista.sort((x, y) => sobe ? chave(y) - chave(x) : chave(x) - chave(y));
+
+  if (!lista.length) { linhaVazia(sobe ? "Nenhum laboratório cresceu com esses filtros." : "Nenhum laboratório caiu com esses filtros."); return; }
+
+  const mostra = lista.slice(0, qtd);
+  // garante que o laboratório filtrado no topo apareça, mesmo fora do ranking
+  const posSel = f.lab ? lista.findIndex(x => x.lab === f.lab) : -1;
+  if (posSel >= qtd) mostra.push(lista[posSel]);
+  const maxAbs = Math.max(...mostra.map(x => Math.abs(chave(x))));
+
+  mostra.forEach(x => {
+    const tr = document.createElement("tr");
+    if (x.lab === f.lab) tr.className = "selecionado";
+    const td = (txt, cls) => { const c = document.createElement("td"); c.textContent = txt; if (cls) c.className = cls; tr.appendChild(c); return c; };
+    td(lista.indexOf(x) + 1 + "º", "pos");
+    td(x.lab);
+    td(brl.format(x.a), "num");
+    td(brl.format(x.b), "num");
+    td((x.dif > 0 ? "▲ +" : "▼ -") + brl.format(Math.abs(x.dif)), "num " + (x.dif > 0 ? "delta-up" : "delta-down"));
+    td(x.pct === null ? "novo" : (x.pct > 0 ? "+" : "") + pct(x.pct), "num");
+    const cel = td("", "barra-cel");
+    const barra = document.createElement("div");
+    barra.className = "barra " + (x.dif > 0 ? "up" : "down");
+    barra.style.width = (Math.abs(chave(x)) / maxAbs * 100).toFixed(1) + "%";
+    barra.title = porPct ? pct(x.pct) : brl.format(x.dif);
+    cel.appendChild(barra);
+    tb.appendChild(tr);
+  });
+
+  const notas = [`${lista.length} laboratório(s) ${sobe ? "cresceram" : "caíram"} com esses filtros.`];
+  if (novos) notas.push(`${novos} sem faturamento em ${p.rotBase} (novos) não entram na ordenação por %.`);
+  if (f.lab && posSel === -1) notas.push(`${f.lab} não está nesta lista.`);
+  $("cRodape").textContent = notas.join(" ");
+}
+["cModo", "cDirecao", "cMetrica", "cMinimo", "cQtd"].forEach(id => $(id).addEventListener("change", atualizarCrescimento));
+
 // ---------- orquestração ----------
 function atualizar() {
   const f = filtros();
@@ -566,6 +735,7 @@ function atualizar() {
   graficoTotalMes(f);
   graficoParticipacao(f, recorte);
   atualizarInsights(f);
+  atualizarCrescimento();
   montarTabela(recorte);
 }
 
