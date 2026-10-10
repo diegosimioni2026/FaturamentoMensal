@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Corporativo - Laboratórios</title>
+    <!-- TailwindCSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        dark: { 900: '#0f172a', 800: '#1e293b', 700: '#334155' },
+                        primary: { 500: '#3b82f6', 600: '#2563eb' }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Dados -->
+    <script src="data.js"></script>
+    <style>
+        body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background-color: #0B1120; color: #f8fafc; }
+        .glass-panel { background: rgba(30, 41, 59, 0.6); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.1); }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(51, 65, 85, 0.8); border-radius: 10px; }
+        select { background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%239ca3af' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e"); background-position: right 0.5rem center; background-repeat: no-repeat; background-size: 1.5em 1.5em; padding-right: 2.5rem; -webkit-print-color-adjust: exact; print-color-adjust: exact; appearance: none; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Top Navigation / Filters -->
+    <nav class="glass-panel border-b border-white/10 sticky top-0 z-50">
+        <div class="max-w-[1400px] mx-auto px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                </div>
+                <h1 class="text-xl font-bold tracking-tight text-white">Análise Corporativa</h1>
+            </div>
+            
+            <div class="flex flex-wrap items-center gap-3">
+                <span class="text-sm font-medium text-slate-400">Filtros:</span>
+                <select id="monthFilter" onchange="applyFilters()" class="bg-dark-800 border border-slate-700 text-sm rounded-lg block p-2.5 text-white hover:border-slate-600 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors">
+                    <option value="ALL">Todos os Meses</option>
+                    <!-- Preenchido via JS -->
+                </select>
+                <select id="labFilter" onchange="applyFilters()" class="bg-dark-800 border border-slate-700 text-sm rounded-lg block p-2.5 text-white hover:border-slate-600 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors max-w-[200px] truncate">
+                    <option value="ALL">Todos os Laboratórios</option>
+                    <!-- Preenchido via JS -->
+                </select>
+                <button onclick="resetFilters()" class="text-sm text-slate-400 hover:text-white underline decoration-slate-600 underline-offset-4 transition-colors">Limpar</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="flex-1 max-w-[1400px] w-full mx-auto px-6 py-8 space-y-8">
+        
+        <!-- SECTION 1: KPIs & Cards -->
+        <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <!-- Total -->
+            <div class="glass-panel rounded-2xl p-6 relative overflow-hidden group">
+                <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                    <svg class="w-16 h-16" fill="currentColor" viewBox="0 0 20 20"><path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" /><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.894a2.332 2.332 0 01-.458-.145 1 1 0 10-1.012 1.734c.162.094.336.177.518.25V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.198c.162.054.316.12.458.196a1 1 0 101.012-1.734 5.38 5.38 0 00-.518-.25V5z" clip-rule="evenodd" /></svg>
+                </div>
+                <p class="text-sm font-medium text-slate-400 mb-1">Faturamento Total</p>
+                <h3 id="kpi-total" class="text-3xl font-bold text-white mb-2 tracking-tight">R$ 0,00</h3>
+                <p id="kpi-total-sub" class="text-xs text-emerald-400 font-medium flex items-center gap-1">
+                    <span>•</span> Análise global do período
+                </p>
+            </div>
+            
+            <!-- Top Lab -->
+            <div class="glass-panel rounded-2xl p-6 relative overflow-hidden group">
+                <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity text-emerald-400">
+                    <svg class="w-16 h-16" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd" /></svg>
+                </div>
+                <p class="text-sm font-medium text-slate-400 mb-1">Top Performance (Lab)</p>
+                <h3 id="kpi-toplab" class="text-2xl font-bold text-emerald-400 mb-2 truncate" title="-">-</h3>
+                <p id="kpi-toplab-val" class="text-sm text-slate-300 font-medium">R$ 0,00</p>
+            </div>
+
+            <!-- Biggest Drop -->
+            <div class="glass-panel rounded-2xl p-6 relative overflow-hidden group">
+                <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity text-red-500">
+                    <svg class="w-16 h-16" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M12 13a1 1 0 100 2h5a1 1 0 001-1V9a1 1 0 10-2 0v2.586l-4.293-4.293a1 1 0 00-1.414 0L8 9.586 3.707 5.293a1 1 0 00-1.414 1.414l5 5a1 1 0 001.414 0L11 9.414 14.586 13H12z" clip-rule="evenodd" /></svg>
+                </div>
+                <p class="text-sm font-medium text-slate-400 mb-1">Maior Queda (Mês a Mês)</p>
+                <h3 id="kpi-worstlab" class="text-2xl font-bold text-red-400 mb-2 truncate" title="-">-</h3>
+                <p id="kpi-worstlab-val" class="text-sm text-slate-300 font-medium">R$ 0,00</p>
+            </div>
+
+            <!-- Average -->
+            <div class="glass-panel rounded-2xl p-6 relative overflow-hidden group">
+                <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity text-blue-400">
+                    <svg class="w-16 h-16" fill="currentColor" viewBox="0 0 20 20"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" /></svg>
+                </div>
+                <p class="text-sm font-medium text-slate-400 mb-1">Ticket Médio por Lab</p>
+                <h3 id="kpi-avg" class="text-3xl font-bold text-white mb-2 tracking-tight">R$ 0,00</h3>
+                <p class="text-xs text-slate-400 font-medium">Considerando apenas labs ativos</p>
+            </div>
+        </section>
+
+        <!-- SECTION 2: Graphics -->
+        <section class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+            <!-- Main Chart -->
+            <div class="glass-panel rounded-2xl p-6 xl:col-span-2 shadow-xl border border-white/5 flex flex-col">
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <h2 class="text-lg font-bold text-white">Curva de Faturamento</h2>
+                        <p class="text-sm text-slate-400">Evolução dos Top 10 laboratórios ao longo dos meses</p>
+                    </div>
+                </div>
+                <div class="relative flex-1 min-h-[350px]">
+                    <canvas id="evolutionChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Share Chart -->
+            <div class="glass-panel rounded-2xl p-6 shadow-xl border border-white/5 flex flex-col">
+                <h2 class="text-lg font-bold text-white mb-1">Market Share</h2>
+                <p class="text-sm text-slate-400 mb-6">Composição do faturamento (Top 5)</p>
+                <div class="relative flex-1 min-h-[250px] flex items-center justify-center">
+                    <canvas id="shareChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 3: Commented Summaries (Insights) -->
+        <section class="glass-panel rounded-2xl p-6 shadow-xl border border-white/5">
+            <h2 class="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                <svg class="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                Resumo Comentado & Ações Recomendadas
+            </h2>
+            <div id="insightsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Injetado por JS -->
+            </div>
+        </section>
+
+        <!-- SECTION 4: Data Table -->
+        <section class="glass-panel rounded-2xl shadow-xl border border-white/5 overflow-hidden flex flex-col">
+            <div class="p-6 border-b border-white/10 flex justify-between items-center bg-dark-800/50">
+                <div>
+                    <h2 class="text-xl font-bold text-white">Tabela Resumo Detalhada</h2>
+                    <p class="text-sm text-slate-400">Listagem de faturamento por laboratório</p>
+                </div>
+            </div>
+            <div class="overflow-x-auto custom-scrollbar">
+                <table class="w-full text-left text-sm text-slate-300">
+                    <thead class="text-xs uppercase bg-dark-800/80 text-slate-400 border-b border-white/10">
+                        <tr>
+                            <th scope="col" class="px-6 py-4 font-semibold">Laboratório</th>
+                            <th scope="col" class="px-6 py-4 font-semibold">Mês</th>
+                            <th scope="col" class="px-6 py-4 font-semibold text-right">Faturamento (R$)</th>
+                            <th scope="col" class="px-6 py-4 font-semibold text-right">% Mensal</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody" class="divide-y divide-white/5">
+                        <!-- Injetado por JS -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="p-4 border-t border-white/10 bg-dark-800/50 flex justify-between items-center text-sm text-slate-400">
+                <span id="tableCount">Mostrando 0 registros</span>
+                <div class="flex gap-2">
+                    <button id="btnPrev" onclick="changePage(-1)" class="px-3 py-1 rounded border border-slate-700 hover:bg-slate-700 disabled:opacity-50">Anterior</button>
+                    <button id="btnNext" onclick="changePage(1)" class="px-3 py-1 rounded border border-slate-700 hover:bg-slate-700 disabled:opacity-50">Próxima</button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        const monthOrder = { "Janeiro": 1, "Fevereiro": 2, "Março": 3, "Abril": 4, "Maio": 5, "Junho": 6, "Julho": 7, "Agosto": 8, "Setembro": 9, "Outubro": 10, "Novembro": 11, "Dezembro": 12 };
+        let charts = { evolution: null, share: null };
+        let allLabs = new Set();
+        let allMonths = new Set();
+        let currentData = [];
+        let currentPage = 1;
+        const rowsPerPage = 15;
+
+        // Formatação Monetária
+        const fmtMoney = (val) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
+
+        function initApp() {
+            if (typeof excelData === 'undefined' || !excelData || excelData.length === 0) {
+                alert("Erro: Dados não encontrados.");
+                return;
+            }
+
+            // Popula os Sets globais para Filtros
+            excelData.forEach(row => {
+                if(row["Empresa"] && typeof row["Valor"] === 'number') {
+                    allLabs.add(row["Empresa"]);
+                    allMonths.add(row["Mês"]);
+                }
+            });
+
+            // Ordena Set de Meses
+            const sortedMonths = Array.from(allMonths).sort((a,b) => monthOrder[a] - monthOrder[b]);
+            const sortedLabs = Array.from(allLabs).sort();
+
+            // Preenche selects
+            const mf = document.getElementById("monthFilter");
+            sortedMonths.forEach(m => mf.innerHTML += `<option value="${m}">${m}</option>`);
+            
+            const lf = document.getElementById("labFilter");
+            sortedLabs.forEach(l => lf.innerHTML += `<option value="${l}">${l}</option>`);
+
+            applyFilters();
+        }
+
+        function resetFilters() {
+            document.getElementById("monthFilter").value = "ALL";
+            document.getElementById("labFilter").value = "ALL";
+            applyFilters();
+        }
+
+        function applyFilters() {
+            const selMonth = document.getElementById("monthFilter").value;
+            const selLab = document.getElementById("labFilter").value;
+
+            // Filtra os dados globais
+            currentData = excelData.filter(row => {
+                if (!row["Empresa"] || typeof row["Valor"] !== 'number') return false;
+                if (selMonth !== "ALL" && row["Mês"] !== selMonth) return false;
+                if (selLab !== "ALL" && row["Empresa"] !== selLab) return false;
+                return true;
+            });
+
+            // Re-ordena por valor (Decrescente) para a tabela principal ficar bonita
+            currentData.sort((a, b) => b["Valor"] - a["Valor"]);
+
+            updateKPIs();
+            updateCharts();
+            updateInsights();
+            currentPage = 1;
+            renderTable();
+        }
+
+        function updateKPIs() {
+            let total = 0;
+            let labTotals = {};
+            let monthTotals = {}; // Para calcular a maior queda
+
+            currentData.forEach(row => {
+                total += row["Valor"];
+                labTotals[row["Empresa"]] = (labTotals[row["Empresa"]] || 0) + row["Valor"];
+            });
+
+            // Total
+            document.getElementById("kpi-total").textContent = fmtMoney(total);
+
+            // Top Lab
+            let topLab = "-", topVal = 0;
+            Object.entries(labTotals).forEach(([lab, val]) => {
+                if(val > topVal) { topVal = val; topLab = lab; }
+            });
+            document.getElementById("kpi-toplab").textContent = topLab;
+            document.getElementById("kpi-toplab-val").textContent = topLab !== "-" ? fmtMoney(topVal) : "-";
+
+            // Maior Queda (Complexo: precisa olhar a linha do tempo do dataset original)
+            // Vou simplificar pegando do dataset completo (sem filtro de mes) para fazer sentido
+            let worstLab = "-", worstDrop = 0;
+            const baseData = excelData.filter(row => document.getElementById("labFilter").value === "ALL" ? true : row["Empresa"] === document.getElementById("labFilter").value);
+            
+            let labsHistory = {};
+            baseData.forEach(row => {
+                if(!labsHistory[row["Empresa"]]) labsHistory[row["Empresa"]] = {};
+                labsHistory[row["Empresa"]][row["Mês"]] = row["Valor"];
+            });
+
+            const sortedMonths = Array.from(allMonths).sort((a,b) => monthOrder[a] - monthOrder[b]);
+
+            Object.entries(labsHistory).forEach(([lab, months]) => {
+                let firstVal = -1;
+                let lastVal = -1;
+                sortedMonths.forEach(m => {
+                    if (months[m] !== undefined) {
+                        if (firstVal === -1) firstVal = months[m];
+                        lastVal = months[m];
+                    }
+                });
+                if(firstVal !== -1 && lastVal !== -1) {
+                    let drop = firstVal - lastVal;
+                    if(drop > worstDrop) {
+                        worstDrop = drop;
+                        worstLab = lab;
+                    }
+                }
+            });
+
+            if (worstDrop > 0) {
+                document.getElementById("kpi-worstlab").textContent = worstLab;
+                document.getElementById("kpi-worstlab-val").textContent = `-${fmtMoney(worstDrop)}`;
+            } else {
+                document.getElementById("kpi-worstlab").textContent = "Nenhuma";
+                document.getElementById("kpi-worstlab-val").textContent = "Crescimento Geral";
+            }
+
+            // Ticket Médio
+            let activeLabsCount = Object.keys(labTotals).length;
+            document.getElementById("kpi-avg").textContent = activeLabsCount > 0 ? fmtMoney(total / activeLabsCount) : "R$ 0,00";
+        }
+
+        function updateCharts() {
+            // Prepara dados para os gráficos
+            const labsMap = {};
+            const availableMonths = new Set();
+            
+            // Independente do filtro de mês, o gráfico de linha deve mostrar a linha do tempo se um mês não estiver filtrado unicamente.
+            // Se um mês específico for filtrado, o gráfico de linha vira um bar chart daquele mês.
+            const isSingleMonth = document.getElementById("monthFilter").value !== "ALL";
+
+            currentData.forEach(row => {
+                if(!labsMap[row["Empresa"]]) labsMap[row["Empresa"]] = {};
+                labsMap[row["Empresa"]][row["Mês"]] = row["Valor"];
+                availableMonths.add(row["Mês"]);
+            });
+
+            const sortedMonths = Array.from(availableMonths).sort((a,b) => monthOrder[a] - monthOrder[b]);
+            const labTotals = Object.keys(labsMap).map(lab => {
+                let sum = 0;
+                Object.values(labsMap[lab]).forEach(v => sum += v);
+                return { lab, sum };
+            }).sort((a, b) => b.sum - a.sum);
+
+            const top10 = labTotals.slice(0, 10).map(i => i.lab);
+            const top5 = labTotals.slice(0, 5);
+
+            // Cores
+            const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316', '#64748b', '#84cc16'];
+
+            // Gráfico 1: Evolução
+            const ctxEvol = document.getElementById('evolutionChart').getContext('2d');
+            if(charts.evolution) charts.evolution.destroy();
+
+            if (isSingleMonth) {
+                // Gráfico de Barras
+                charts.evolution = new Chart(ctxEvol, {
+                    type: 'bar',
+                    data: {
+                        labels: top10,
+                        datasets: [{
+                            label: 'Faturamento',
+                            data: top10.map(l => labsMap[l][sortedMonths[0]] || 0),
+                            backgroundColor: '#3b82f6aa',
+                            borderColor: '#3b82f6',
+                            borderWidth: 1,
+                            borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: { grid: { color: '#334155', borderDash: [5] }, ticks: { color: '#94a3b8' } },
+                            x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
+                        }
+                    }
+                });
+            } else {
+                // Gráfico de Linha
+                const datasets = top10.map((lab, i) => ({
+                    label: lab,
+                    data: sortedMonths.map(m => labsMap[lab][m] || 0),
+                    borderColor: colors[i % colors.length],
+                    backgroundColor: colors[i % colors.length] + '11',
+                    tension: 0.4,
+                    borderWidth: 2,
+                    pointRadius: 3
+                }));
+
+                charts.evolution = new Chart(ctxEvol, {
+                    type: 'line',
+                    data: { labels: sortedMonths, datasets },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        interaction: { mode: 'index', intersect: false },
+                        plugins: { legend: { position: 'right', labels: { color: '#cbd5e1', usePointStyle: true, boxWidth: 8 } } },
+                        scales: {
+                            y: { grid: { color: '#334155', borderDash: [5] }, ticks: { color: '#94a3b8' } },
+                            x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
+                        }
+                    }
+                });
+            }
+
+            // Gráfico 2: Share (Donut)
+            const ctxShare = document.getElementById('shareChart').getContext('2d');
+            if(charts.share) charts.share.destroy();
+
+            const othersSum = labTotals.slice(5).reduce((acc, curr) => acc + curr.sum, 0);
+            const shareLabels = top5.map(i => i.lab);
+            const shareData = top5.map(i => i.sum);
+            
+            if (othersSum > 0) {
+                shareLabels.push("Outros");
+                shareData.push(othersSum);
+            }
+
+            charts.share = new Chart(ctxShare, {
+                type: 'doughnut',
+                data: {
+                    labels: shareLabels,
+                    datasets: [{
+                        data: shareData,
+                        backgroundColor: [...colors.slice(0,5), '#334155'],
+                        borderWidth: 0,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: { position: 'bottom', labels: { color: '#cbd5e1', usePointStyle: true, padding: 15, boxWidth: 8 } }
+                    }
+                }
+            });
+        }
+
+        function updateInsights() {
+            const container = document.getElementById("insightsContainer");
+            container.innerHTML = "";
+
+            if (currentData.length === 0) {
+                container.innerHTML = `<p class="text-slate-500">Sem dados para gerar insights.</p>`;
+                return;
+            }
+
+            // Agrupa por Lab em todo historico disponivel na currentData
+            const labsMap = {};
+            currentData.forEach(row => {
+                if(!labsMap[row["Empresa"]]) labsMap[row["Empresa"]] = [];
+                labsMap[row["Empresa"]].push({m: row["Mês"], v: row["Valor"]});
+            });
+
+            const sortedMonths = Array.from(allMonths).sort((a,b) => monthOrder[a] - monthOrder[b]);
+            let insights = [];
+
+            Object.entries(labsMap).forEach(([lab, records]) => {
+                records.sort((a,b) => monthOrder[a.m] - monthOrder[b.m]);
+                if(records.length >= 2) {
+                    const first = records[0].v;
+                    const last = records[records.length-1].v;
+                    const diff = last - first;
+                    const max = Math.max(...records.map(r => r.v));
+
+                    if (diff < 0) {
+                        insights.push({
+                            type: 'alert',
+                            html: `<div class="bg-red-500/10 border border-red-500/20 rounded-xl p-4 flex flex-col gap-2 transition-transform hover:-translate-y-1">
+                                <div class="flex items-center gap-2 text-red-400 font-bold"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"></path></svg> Alerta: ${lab}</div>
+                                <p class="text-sm text-slate-300">Retração de ${fmtMoney(Math.abs(diff))}. Revisar estratégia comercial urgente.</p>
+                            </div>`,
+                            weight: Math.abs(diff) // Ordena pelos piores
+                        });
+                    } else if (last < max * 0.75) {
+                        insights.push({
+                            type: 'warn',
+                            html: `<div class="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 flex flex-col gap-2 transition-transform hover:-translate-y-1">
+                                <div class="flex items-center gap-2 text-yellow-400 font-bold"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg> Instabilidade: ${lab}</div>
+                                <p class="text-sm text-slate-300">Apesar do crescimento, o último registro está 25%+ abaixo do pico histórico.</p>
+                            </div>`,
+                            weight: diff
+                        });
+                    } else if (diff > 50000) { // Valor expressivo
+                         insights.push({
+                            type: 'success',
+                            html: `<div class="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 flex flex-col gap-2 transition-transform hover:-translate-y-1">
+                                <div class="flex items-center gap-2 text-emerald-400 font-bold"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg> Destaque: ${lab}</div>
+                                <p class="text-sm text-slate-300">Crescimento notável de ${fmtMoney(diff)}. Avaliar ampliação de portfólio.</p>
+                            </div>`,
+                            weight: 1000000 + diff
+                        });
+                    }
+                }
+            });
+
+            // Pega top 6 insights mais relevantes
+            insights.sort((a,b) => b.weight - a.weight);
+            if(insights.length > 6) insights = insights.slice(0, 6);
+
+            if(insights.length === 0) {
+                 container.innerHTML = `<div class="col-span-3 text-center py-6 text-slate-500">O comportamento dos dados está estável. Não há anomalias críticas no recorte atual.</div>`;
+            } else {
+                 container.innerHTML = insights.map(i => i.html).join('');
+            }
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById("tableBody");
+            tbody.innerHTML = "";
+
+            if(currentData.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="px-6 py-8 text-center text-slate-500">Nenhum dado encontrado para os filtros selecionados.</td></tr>`;
+                document.getElementById("btnPrev").disabled = true;
+                document.getElementById("btnNext").disabled = true;
+                document.getElementById("tableCount").textContent = "Mostrando 0 registros";
+                return;
+            }
+
+            const totalPages = Math.ceil(currentData.length / rowsPerPage);
+            if(currentPage < 1) currentPage = 1;
+            if(currentPage > totalPages) currentPage = totalPages;
+
+            const start = (currentPage - 1) * rowsPerPage;
+            const end = start + rowsPerPage;
+            const pageData = currentData.slice(start, end);
+
+            pageData.forEach(row => {
+                let perc = row["% Mensal"] ? (row["% Mensal"] * 100).toFixed(2) + '%' : '-';
+                let tr = document.createElement("tr");
+                tr.className = "hover:bg-white/5 transition-colors group";
+                tr.innerHTML = `
+                    <td class="px-6 py-4 font-medium text-white group-hover:text-blue-400 transition-colors">${row["Empresa"]}</td>
+                    <td class="px-6 py-4">${row["Mês"]}</td>
+                    <td class="px-6 py-4 text-right font-medium text-emerald-400">${fmtMoney(row["Valor"])}</td>
+                    <td class="px-6 py-4 text-right text-slate-400">${perc}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById("tableCount").textContent = `Mostrando ${start + 1} a ${Math.min(end, currentData.length)} de ${currentData.length} registros (Página ${currentPage} de ${totalPages})`;
+            document.getElementById("btnPrev").disabled = currentPage === 1;
+            document.getElementById("btnNext").disabled = currentPage === totalPages;
+        }
+
+        function changePage(delta) {
+            currentPage += delta;
+            renderTable();
+        }
+
+        document.addEventListener("DOMContentLoaded", initApp);
+    </script>
+</body>
+</html>
