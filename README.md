@@ -39,5 +39,6 @@ Na planilha, crie (ou preencha) a aba `NN. BANCO DE DADOS`, com `NN` = os dois �
 | `ferramentas/template.html` | Visual e lógica do dashboard. Edite aqui e rode `atualizar.bat`. |
 | `ferramentas/vendor/` | Chart.js 4.4.1, embutido no HTML |
 | `CONTEXTO.MD` | Escopo completo do projeto |
+| `SPRINTS.md` | Planejamento de execução (o que foi feito e o que falta) |
 
 Para só gerar o `index.html`, sem publicar: `py ferramentas/gerar_dashboard.py`

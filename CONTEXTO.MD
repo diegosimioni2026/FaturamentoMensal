@@ -38,6 +38,7 @@ AULA IA/
 ├── atualizar.bat                   ← clique duplo: gera o dashboard e publica
 ├── README.md                       ← instruções curtas de uso
 ├── CONTEXTO.MD                     ← este documento
+├── SPRINTS.md                      ← planejamento de execução (sprints)
 ├── .gitignore / .gitattributes
 ├── dados/
 │   └── 01. FATURAMENTO MÊS A MES.xlsx   ← planilha de origem (a única .xlsx)
