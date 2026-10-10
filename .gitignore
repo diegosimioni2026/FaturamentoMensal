@@ -1,0 +1,18 @@
+# Instaladores e ferramentas locais (não fazem parte do projeto)
+*.exe
+*.dll
+*.zip
+*.iso
+MinGit/
+PortableGit/
+
+# Arquivos temporários do Excel (planilha aberta)
+~$*
+
+# Python
+__pycache__/
+
+# Editores
+.vscode/
+.idea/
+*.code-workspace

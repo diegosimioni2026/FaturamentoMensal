@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Faturamento por Laboratório</title>
+<!--
+  ARQUIVO GERADO AUTOMATICAMENTE por ferramentas/gerar_dashboard.py.
+  Não edite o index.html: edite ferramentas/template.html e rode atualizar.bat.
+-->
+<style>
+  :root {
+    color-scheme: dark;
+    --page: #0d0d0d;
+    --surface: #1a1a19;
+    --surface-2: #232321;
+    --border: rgba(255,255,255,0.10);
+    --text: #f0efec;
+    --text-2: #c3c2b7;
+    --muted: #898781;
+    --grid: #2c2c2a;
+    --axis: #383835;
+    --accent: #3987e5;
+    --good: #0ca30c;
+    --warning: #fab219;
+    --critical: #d03b3b;
+    --critical-text: #f08a8a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--page); color: var(--text);
+    font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  .wrap { max-width: 1400px; margin: 0 auto; padding: 0 16px; }
+
+  header { background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10; }
+  header .wrap { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding-block: 14px; }
+  h1 { margin: 0; font-size: 20px; font-weight: 700; }
+  .sub { color: var(--muted); font-size: 12px; }
+  .filtros { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .filtros label { display: flex; flex-direction: column; gap: 2px; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  select {
+    background: var(--surface-2); color: var(--text); border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 10px; font: inherit; min-width: 130px; max-width: 240px;
+  }
+  select:focus, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  button {
+    background: transparent; color: var(--text-2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 12px; font: inherit; cursor: pointer;
+  }
+  button:hover:not(:disabled) { background: var(--surface-2); color: var(--text); }
+  button:disabled { opacity: .4; cursor: default; }
+
+  main { padding-block: 24px 40px; display: grid; gap: 20px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 20px; min-width: 0; }
+  .card h2 { margin: 0; font-size: 16px; }
+  .card .desc { margin: 2px 0 14px; color: var(--muted); font-size: 13px; }
+
+  .aviso { background: rgba(250,178,25,0.08); border: 1px solid rgba(250,178,25,0.35); border-radius: 12px; padding: 12px 16px; color: var(--text-2); }
+  .aviso summary { color: var(--warning); font-weight: 700; cursor: pointer; }
+  .aviso ul { margin: 6px 0 0; padding-left: 20px; }
+
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 16px; }
+  .kpi .rotulo { color: var(--muted); font-size: 13px; margin-bottom: 6px; }
+  .kpi .valor { font-size: 28px; font-weight: 700; letter-spacing: -.01em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .kpi .valor.nome { font-size: 20px; }
+  .kpi .extra { color: var(--text-2); font-size: 13px; margin-top: 4px; }
+  .delta-up { color: var(--good); }
+  .delta-down { color: var(--critical-text); }
+
+  .graficos { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+  .graficos .largo { grid-column: 1 / -1; }
+  .canvas-box { position: relative; height: 340px; }
+  .canvas-box.baixo { height: 280px; }
+  @media (max-width: 1000px) { .graficos { grid-template-columns: 1fr; } }
+
+  .insights { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+  .insight { border-radius: 12px; padding: 14px; border: 1px solid; background: var(--surface-2); }
+  .insight .tit { font-weight: 700; display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+  .insight p { margin: 0; color: var(--text-2); font-size: 13px; }
+  .insight.alerta { border-color: rgba(208,59,59,.45); } .insight.alerta .tit { color: var(--critical-text); }
+  .insight.instavel { border-color: rgba(250,178,25,.40); } .insight.instavel .tit { color: var(--warning); }
+  .insight.destaque { border-color: rgba(12,163,12,.45); } .insight.destaque .tit { color: var(--good); }
+  .vazio { color: var(--muted); padding: 12px 0; }
+
+  .tabela-box { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--grid); white-space: nowrap; }
+  th { color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  tbody tr:hover { background: var(--surface-2); }
+  .paginacao { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; margin-top: 12px; color: var(--muted); font-size: 13px; }
+  .paginacao div { display: flex; gap: 8px; }
+  footer { color: var(--muted); font-size: 12px; text-align: center; padding-bottom: 24px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div>
+      <h1>Faturamento por Laboratório</h1>
+      <div class="sub" id="atualizado"></div>
+    </div>
+    <div class="filtros">
+      <label>Ano <select id="fAno"></select></label>
+      <label>Mês <select id="fMes"></select></label>
+      <label>Laboratório <select id="fLab"></select></label>
+      <button id="btnLimpar" type="button" style="align-self:flex-end">Limpar</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <details id="avisos" class="aviso" hidden></details>
+
+  <section class="kpis">
+    <div class="card kpi">
+      <div class="rotulo">Faturamento total</div>
+      <div class="valor" id="kTotal">-</div>
+      <div class="extra" id="kTotalExtra"></div>
+    </div>
+    <div class="card kpi">
+      <div class="rotulo" id="kTopRotulo">Maior laboratório</div>
+      <div class="valor nome" id="kTop">-</div>
+      <div class="extra" id="kTopExtra"></div>
+    </div>
+    <div class="card kpi">
+      <div class="rotulo">Maior queda de um mês para o seguinte</div>
+      <div class="valor nome" id="kQueda">-</div>
+      <div class="extra" id="kQuedaExtra"></div>
+    </div>
+    <div class="card kpi">
+      <div class="rotulo" id="kMediaRotulo">Média por laboratório</div>
+      <div class="valor" id="kMedia">-</div>
+      <div class="extra" id="kMediaExtra"></div>
+    </div>
+  </section>
+
+  <section class="graficos">
+    <div class="card">
+      <h2 id="g1Titulo">Evolução mensal</h2>
+      <p class="desc" id="g1Desc"></p>
+      <div class="canvas-box"><canvas id="g1" role="img" aria-label="Gráfico de evolução do faturamento"></canvas></div>
+    </div>
+    <div class="card">
+      <h2>Participação no faturamento</h2>
+      <p class="desc" id="g3Desc"></p>
+      <div class="canvas-box"><canvas id="g3" role="img" aria-label="Gráfico de participação no faturamento"></canvas></div>
+    </div>
+    <div class="card largo">
+      <h2>Faturamento total por mês</h2>
+      <p class="desc" id="g2Desc"></p>
+      <div class="canvas-box baixo"><canvas id="g2" role="img" aria-label="Gráfico do faturamento total por mês"></canvas></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Resumo comentado</h2>
+    <p class="desc">Comparação do primeiro com o último mês com dados no ano selecionado.</p>
+    <div class="insights" id="insights"></div>
+  </section>
+
+  <section class="card">
+    <h2>Tabela detalhada</h2>
+    <p class="desc">Faturamento por laboratório e mês no recorte filtrado, do maior para o menor.</p>
+    <div class="tabela-box">
+      <table>
+        <thead><tr>
+          <th>Laboratório</th><th>Mês</th><th class="num">Faturamento</th>
+          <th class="num">% do mês</th><th class="num">Var. vs mês anterior</th>
+        </tr></thead>
+        <tbody id="tBody"></tbody>
+      </table>
+    </div>
+    <div class="paginacao">
+      <span id="tInfo"></span>
+      <div><button id="btnAnt" type="button">Anterior</button><button id="btnProx" type="button">Próxima</button></div>
+    </div>
+  </section>
+</main>
+
+<footer class="wrap" id="rodape"></footer>
+
+<script>/*__CHARTJS__*/</script>
+<script>
+"use strict";
+const DADOS = /*__DADOS__*/null;
+
+const MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+const MES_CURTO = MESES.map(m => m.slice(0, 3));
+// Paleta categórica validada (modo escuro). A ordem é fixa: a cor segue o laboratório, não a posição.
+const CORES = ["#3987e5","#d95926","#199e70","#c98500","#d55181","#008300","#9085e9","#e66767"];
+const CINZA = "#5f5e5a";
+const css = getComputedStyle(document.documentElement);
+const COR = n => css.getPropertyValue(n).trim();
+
+const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+const brlCurto = v => {
+  const a = Math.abs(v);
+  if (a >= 1e6) return "R$ " + (v / 1e6).toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + " mi";
+  if (a >= 1e3) return "R$ " + (v / 1e3).toLocaleString("pt-BR", { maximumFractionDigits: 0 }) + " mil";
+  return "R$ " + v.toLocaleString("pt-BR", { maximumFractionDigits: 0 });
+};
+const pct = (v, casas = 1) => (v * 100).toLocaleString("pt-BR", { minimumFractionDigits: casas, maximumFractionDigits: casas }) + "%";
+const $ = id => document.getElementById(id);
+const soma = arr => arr.reduce((a, r) => a + r.valor, 0);
+
+// ---------- dados ----------
+const REG = DADOS.linhas.map(([ano, mes, lab, valor]) => ({ ano, mes, lab: DADOS.labs[lab], valor }));
+const ANOS = [...new Set(REG.map(r => r.ano))].sort((a, b) => a - b);
+const totalMes = {};          // "ano-mes" -> total do mês (todos os labs)
+REG.forEach(r => { const k = r.ano + "-" + r.mes; totalMes[k] = (totalMes[k] || 0) + r.valor; });
+const mesesDoAno = ano => [...new Set(REG.filter(r => r.ano === ano).map(r => r.mes))].sort((a, b) => a - b);
+
+// ---------- filtros ----------
+const opt = (sel, valor, texto) => { const o = document.createElement("option"); o.value = valor; o.textContent = texto; sel.appendChild(o); };
+ANOS.slice().reverse().forEach(a => opt($("fAno"), a, a));
+function preencherMeses() {
+  const sel = $("fMes"), atual = sel.value;
+  sel.innerHTML = "";
+  opt(sel, "ALL", "Todos os meses");
+  mesesDoAno(+$("fAno").value).forEach(m => opt(sel, m, MESES[m - 1]));
+  sel.value = [...sel.options].some(o => o.value === atual) ? atual : "ALL";
+}
+function preencherLabs() {
+  const sel = $("fLab"), atual = sel.value;
+  sel.innerHTML = "";
+  opt(sel, "ALL", "Todos os laboratórios");
+  [...new Set(REG.filter(r => r.ano === +$("fAno").value).map(r => r.lab))].sort().forEach(l => opt(sel, l, l));
+  sel.value = [...sel.options].some(o => o.value === atual) ? atual : "ALL";
+}
+function filtros() {
+  return { ano: +$("fAno").value, mes: $("fMes").value === "ALL" ? null : +$("fMes").value, lab: $("fLab").value === "ALL" ? null : $("fLab").value };
+}
+$("fAno").addEventListener("change", () => { preencherMeses(); preencherLabs(); atualizar(); });
+$("fMes").addEventListener("change", atualizar);
+$("fLab").addEventListener("change", atualizar);
+$("btnLimpar").addEventListener("click", () => { $("fAno").value = ANOS[ANOS.length - 1]; preencherMeses(); preencherLabs(); $("fMes").value = "ALL"; $("fLab").value = "ALL"; atualizar(); });
+
+// Cor por laboratório: os 8 maiores do ano recebem as cores na ordem fixa.
+let corLab = {};
+function definirCores(ano) {
+  const tot = {};
+  REG.filter(r => r.ano === ano).forEach(r => tot[r.lab] = (tot[r.lab] || 0) + r.valor);
+  corLab = {};
+  Object.entries(tot).sort((a, b) => b[1] - a[1]).slice(0, CORES.length).forEach(([l], i) => corLab[l] = CORES[i]);
+}
+
+// ---------- KPIs ----------
+function porLab(regs) {
+  const t = {};
+  regs.forEach(r => t[r.lab] = (t[r.lab] || 0) + r.valor);
+  return Object.entries(t).map(([lab, valor]) => ({ lab, valor })).sort((a, b) => b.valor - a.valor);
+}
+
+// Maior queda entre meses consecutivos com dados no ano (lab sem venda no mês = 0).
+function maiorQueda(f) {
+  const meses = mesesDoAno(f.ano);
+  const doAno = REG.filter(r => r.ano === f.ano && (!f.lab || r.lab === f.lab));
+  const v = {};
+  doAno.forEach(r => (v[r.lab] = v[r.lab] || {})[r.mes] = r.valor);
+  let pior = null;
+  for (let i = 1; i < meses.length; i++) {
+    const de = meses[i - 1], para = meses[i];
+    if (f.mes && para !== f.mes) continue;
+    Object.keys(v).forEach(lab => {
+      const queda = (v[lab][de] || 0) - (v[lab][para] || 0);
+      if (queda > 0 && (!pior || queda > pior.queda)) pior = { lab, de, para, queda, base: v[lab][de] };
+    });
+  }
+  return pior;
+}
+
+function atualizarKPIs(f, recorte) {
+  const total = soma(recorte);
+  $("kTotal").textContent = brl.format(total);
+
+  // comparação com o mesmo recorte no ano anterior
+  const ant = REG.filter(r => r.ano === f.ano - 1 && (!f.mes || r.mes === f.mes) && (!f.lab || r.lab === f.lab)
+    && mesesDoAno(f.ano).includes(r.mes));
+  const totAnt = soma(ant);
+  const ext = $("kTotalExtra");
+  if (totAnt > 0) {
+    const d = total / totAnt - 1;
+    ext.innerHTML = "";
+    const s = document.createElement("span");
+    s.className = d >= 0 ? "delta-up" : "delta-down";
+    s.textContent = (d >= 0 ? "▲ +" : "▼ ") + pct(d);
+    ext.append(s, ` vs ${f.ano - 1} (${brlCurto(totAnt)})`);
+  } else ext.textContent = `${recorte.length} registros no recorte`;
+
+  const labs = porLab(recorte);
+  if (f.lab) {
+    const doMercado = REG.filter(r => r.ano === f.ano && (!f.mes || r.mes === f.mes));
+    $("kTopRotulo").textContent = "Participação no mercado";
+    $("kTop").textContent = soma(doMercado) ? pct(total / soma(doMercado)) : "-";
+    const rank = porLab(doMercado).findIndex(x => x.lab === f.lab) + 1;
+    $("kTopExtra").textContent = rank ? `${rank}º lugar entre ${porLab(doMercado).length} laboratórios` : "";
+  } else {
+    $("kTopRotulo").textContent = "Maior laboratório";
+    $("kTop").textContent = labs[0] ? labs[0].lab : "-";
+    $("kTop").title = labs[0] ? labs[0].lab : "";
+    $("kTopExtra").textContent = labs[0] ? `${brl.format(labs[0].valor)} (${pct(labs[0].valor / total)} do total)` : "";
+  }
+
+  const q = maiorQueda(f);
+  $("kQueda").textContent = q ? q.lab : "Nenhuma queda";
+  $("kQueda").title = q ? q.lab : "";
+  $("kQuedaExtra").innerHTML = "";
+  if (q) {
+    const s = document.createElement("span");
+    s.className = "delta-down";
+    s.textContent = "▼ " + brl.format(-q.queda);
+    $("kQuedaExtra").append(s, ` de ${MES_CURTO[q.de - 1]} para ${MES_CURTO[q.para - 1]} (${pct(-q.queda / q.base, 0)})`);
+  }
+
+  if (f.lab) {
+    const meses = new Set(recorte.map(r => r.mes)).size;
+    $("kMediaRotulo").textContent = "Média mensal";
+    $("kMedia").textContent = meses ? brl.format(total / meses) : "-";
+    $("kMediaExtra").textContent = `${meses} ${meses === 1 ? "mês" : "meses"} com faturamento`;
+  } else {
+    $("kMediaRotulo").textContent = "Média por laboratório";
+    $("kMedia").textContent = labs.length ? brl.format(total / labs.length) : "-";
+    $("kMediaExtra").textContent = `${labs.length} laboratórios com faturamento`;
+  }
+}
+
+// ---------- gráficos ----------
+Chart.defaults.color = COR("--muted");
+Chart.defaults.font.family = 'system-ui, -apple-system, "Segoe UI", sans-serif';
+Chart.defaults.borderColor = COR("--grid");
+const tooltipBase = {
+  backgroundColor: "#262624", borderColor: COR("--border"), borderWidth: 1, titleColor: COR("--text-2"),
+  bodyColor: COR("--text"), padding: 10, boxPadding: 4, usePointStyle: true,
+};
+const eixoValor = { grid: { color: COR("--grid") }, border: { display: false }, ticks: { callback: v => brlCurto(v) }, beginAtZero: true };
+const eixoCat = { grid: { display: false }, border: { color: COR("--axis") } };
+const legenda = { position: "bottom", labels: { color: COR("--text-2"), usePointStyle: true, boxWidth: 8, boxHeight: 8, padding: 14 } };
+const graf = {};
+function desenhar(id, config) {
+  if (graf[id]) graf[id].destroy();
+  graf[id] = new Chart($(id), config);
+}
+
+function graficoEvolucao(f, recorte) {
+  if (f.lab) {
+    // um laboratório: uma linha por ano, para comparar a evolução
+    $("g1Titulo").textContent = "Evolução mensal: " + f.lab;
+    $("g1Desc").textContent = "Faturamento mês a mês em cada ano disponível.";
+    const datasets = ANOS.map((ano, i) => {
+      const v = {};
+      REG.filter(r => r.ano === ano && r.lab === f.lab).forEach(r => v[r.mes] = r.valor);
+      const meses = mesesDoAno(ano);
+      return {
+        label: String(ano), data: MESES.map((_, m) => meses.includes(m + 1) ? (v[m + 1] || 0) : null),
+        borderColor: CORES[i % CORES.length], backgroundColor: CORES[i % CORES.length],
+        borderWidth: ano === f.ano ? 3 : 2, pointRadius: 4, tension: .3, spanGaps: false,
+      };
+    });
+    desenhar("g1", {
+      type: "line", data: { labels: MES_CURTO, datasets },
+      options: {
+        responsive: true, maintainAspectRatio: false, interaction: { mode: "index", intersect: false },
+        plugins: { legend: legenda, tooltip: { ...tooltipBase, callbacks: { label: c => ` ${c.dataset.label}: ${c.raw == null ? "sem dados" : brl.format(c.raw)}` } } },
+        scales: { y: eixoValor, x: eixoCat },
+      },
+    });
+  } else if (f.mes) {
+    // um mês: ranking dos 10 maiores
+    const top = porLab(recorte).slice(0, 10);
+    $("g1Titulo").textContent = `Ranking de ${MESES[f.mes - 1]} ${f.ano}`;
+    $("g1Desc").textContent = "Os 10 laboratórios com maior faturamento no mês.";
+    desenhar("g1", {
+      type: "bar",
+      data: { labels: top.map(t => t.lab), datasets: [{ label: "Faturamento", data: top.map(t => t.valor),
+        backgroundColor: COR("--accent"), borderRadius: 4, borderSkipped: "start", maxBarThickness: 22 }] },
+      options: {
+        indexAxis: "y", responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { ...tooltipBase, callbacks: { label: c => " " + brl.format(c.raw) } } },
+        scales: { x: eixoValor, y: { grid: { display: false }, border: { color: COR("--axis") }, ticks: { color: COR("--text-2"), autoSkip: false } } },
+      },
+    });
+  } else {
+    // ano todo: os 8 maiores laboratórios
+    const top = porLab(recorte).slice(0, CORES.length);
+    const meses = mesesDoAno(f.ano);
+    $("g1Titulo").textContent = `Evolução mensal dos ${top.length} maiores em ${f.ano}`;
+    $("g1Desc").textContent = "Selecione um laboratório no filtro para ver a evolução dele em todos os anos.";
+    const datasets = top.map(t => {
+      const v = {};
+      recorte.filter(r => r.lab === t.lab).forEach(r => v[r.mes] = r.valor);
+      return { label: t.lab, data: meses.map(m => v[m] || 0), borderColor: corLab[t.lab] || CINZA,
+        backgroundColor: corLab[t.lab] || CINZA, borderWidth: 2, pointRadius: 3, pointHoverRadius: 5, tension: .3 };
+    });
+    desenhar("g1", {
+      type: "line", data: { labels: meses.map(m => MES_CURTO[m - 1]), datasets },
+      options: {
+        responsive: true, maintainAspectRatio: false, interaction: { mode: "index", intersect: false },
+        plugins: { legend: legenda, tooltip: { ...tooltipBase, itemSort: (a, b) => b.raw - a.raw, callbacks: { label: c => ` ${brl.format(c.raw)}  ${c.dataset.label}` } } },
+        scales: { y: eixoValor, x: eixoCat },
+      },
+    });
+  }
+}
+
+function graficoTotalMes(f) {
+  const filtroLab = r => !f.lab || r.lab === f.lab;
+  const serie = ano => MESES.map((_, m) => {
+    if (!mesesDoAno(ano).includes(m + 1)) return null;
+    return soma(REG.filter(r => r.ano === ano && r.mes === m + 1 && filtroLab(r)));
+  });
+  const atual = serie(f.ano);
+  const temAnt = ANOS.includes(f.ano - 1);
+  $("g2Desc").textContent = (f.lab ? f.lab + ": " : "Todos os laboratórios: ") + `${f.ano}` + (temAnt ? ` comparado com ${f.ano - 1}.` : ".")
+    + (f.mes ? ` ${MESES[f.mes - 1]} em destaque.` : "");
+  const realce = cor => MESES.map((_, m) => !f.mes || f.mes === m + 1 ? cor : cor + "55");
+  const datasets = [];
+  if (temAnt) datasets.push({ label: String(f.ano - 1), data: serie(f.ano - 1), backgroundColor: realce(CINZA), borderRadius: 4, maxBarThickness: 28 });
+  datasets.push({ label: String(f.ano), data: atual, backgroundColor: realce(COR("--accent")), borderRadius: 4, maxBarThickness: 28 });
+  desenhar("g2", {
+    type: "bar", data: { labels: MES_CURTO, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false, interaction: { mode: "index", intersect: false },
+      plugins: { legend: { ...legenda, labels: { ...legenda.labels, pointStyle: "rect" } },
+        tooltip: { ...tooltipBase, callbacks: { label: c => ` ${c.dataset.label}: ${c.raw == null ? "sem dados" : brl.format(c.raw)}` } } },
+      scales: { y: eixoValor, x: eixoCat },
+    },
+  });
+}
+
+function graficoParticipacao(f, recorte) {
+  let labels, valores, cores;
+  if (f.lab) {
+    const mercado = soma(REG.filter(r => r.ano === f.ano && (!f.mes || r.mes === f.mes)));
+    const meu = soma(recorte);
+    labels = [f.lab, "Demais laboratórios"]; valores = [meu, mercado - meu]; cores = [corLab[f.lab] || CORES[0], CINZA];
+    $("g3Desc").textContent = "Fatia do laboratório no faturamento total do período.";
+  } else {
+    const labs = porLab(recorte), top = labs.slice(0, 5);
+    const outros = labs.slice(5).reduce((a, l) => a + l.valor, 0);
+    labels = top.map(t => t.lab); valores = top.map(t => t.valor);
+    // labs fora dos 8 maiores do ano pegam uma cor ainda não usada no gráfico (cinza fica para "Outros")
+    const livres = CORES.filter(c => !top.some(t => corLab[t.lab] === c));
+    cores = top.map(t => corLab[t.lab] || livres.shift() || CINZA);
+    if (outros > 0) { labels.push(`Outros (${labs.length - 5})`); valores.push(outros); cores.push(CINZA); }
+    $("g3Desc").textContent = "Os 5 maiores e a soma dos demais.";
+  }
+  const total = valores.reduce((a, b) => a + b, 0);
+  desenhar("g3", {
+    type: "doughnut",
+    data: { labels, datasets: [{ data: valores, backgroundColor: cores, borderColor: COR("--surface"), borderWidth: 2, hoverOffset: 4 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: "65%",
+      plugins: { legend: { ...legenda, labels: { ...legenda.labels, padding: 10 } },
+        tooltip: { ...tooltipBase, callbacks: { label: c => ` ${brl.format(c.raw)} (${pct(c.raw / total)})` } } },
+    },
+  });
+}
+
+// ---------- insights ----------
+function atualizarInsights(f) {
+  const box = $("insights");
+  box.innerHTML = "";
+  const meses = mesesDoAno(f.ano);
+  const lista = [];
+
+  // mês atípico: total muito abaixo da mediana do ano
+  const totais = meses.map(m => totalMes[f.ano + "-" + m]).sort((a, b) => a - b);
+  const mediana = totais[Math.floor(totais.length / 2)];
+  meses.forEach(m => {
+    const t = totalMes[f.ano + "-" + m];
+    if (meses.length >= 3 && t < mediana * 0.5)
+      lista.push({ tipo: "instavel", icone: "⚠", titulo: `Mês atípico: ${MESES[m - 1]}`,
+        texto: `Total de ${brl.format(t)}, menos da metade do mês típico do ano (${brlCurto(mediana)}). Confira se a planilha está completa.`, peso: 3e9 });
+  });
+
+  if (meses.length >= 2) {
+    const primeiro = meses[0], ultimo = meses[meses.length - 1];
+    const v = {};
+    REG.filter(r => r.ano === f.ano && (!f.lab || r.lab === f.lab)).forEach(r => (v[r.lab] = v[r.lab] || {})[r.mes] = r.valor);
+    Object.entries(v).forEach(([lab, porMes]) => {
+      const ini = porMes[primeiro] || 0, fim = porMes[ultimo] || 0, dif = fim - ini;
+      const pico = Math.max(...Object.values(porMes));
+      const periodo = `${MES_CURTO[primeiro - 1]} → ${MES_CURTO[ultimo - 1]}`;
+      if (dif < 0 && ini > 0)
+        lista.push({ tipo: "alerta", icone: "▼", titulo: `Queda: ${lab}`,
+          texto: `Faturamento caiu ${brl.format(-dif)} (${pct(dif / ini, 0)}) de ${periodo}. Revisar a estratégia comercial.`, peso: 2e9 + -dif });
+      else if (fim < pico * 0.75 && pico > 20000)
+        lista.push({ tipo: "instavel", icone: "⚠", titulo: `Instabilidade: ${lab}`,
+          texto: `Último mês (${brl.format(fim)}) está ${pct(1 - fim / pico, 0)} abaixo do pico do ano (${brl.format(pico)}).`, peso: 1e9 + (pico - fim) });
+      else if (dif > 50000)
+        lista.push({ tipo: "destaque", icone: "▲", titulo: `Destaque: ${lab}`,
+          texto: `Crescimento de ${brl.format(dif)} de ${periodo}. Avaliar ampliação de portfólio.`, peso: dif });
+    });
+  }
+
+  // garante variedade: até 2 de cada tipo antes de completar com os demais
+  lista.sort((a, b) => b.peso - a.peso);
+  const escolhidos = [], cont = {};
+  lista.forEach(i => { if ((cont[i.tipo] || 0) < 2 && escolhidos.length < 6) { escolhidos.push(i); cont[i.tipo] = (cont[i.tipo] || 0) + 1; } });
+  lista.forEach(i => { if (!escolhidos.includes(i) && escolhidos.length < 6) escolhidos.push(i); });
+
+  if (!escolhidos.length) {
+    const p = document.createElement("div"); p.className = "vazio";
+    p.textContent = "Sem variações relevantes no recorte atual."; box.appendChild(p); return;
+  }
+  escolhidos.forEach(i => {
+    const d = document.createElement("div"); d.className = "insight " + i.tipo;
+    const t = document.createElement("div"); t.className = "tit"; t.textContent = `${i.icone} ${i.titulo}`;
+    const p = document.createElement("p"); p.textContent = i.texto;
+    d.append(t, p); box.appendChild(d);
+  });
+}
+
+// ---------- tabela ----------
+let linhasTabela = [], pagina = 1;
+const POR_PAGINA = 15;
+function montarTabela(recorte) {
+  const idx = {};
+  REG.forEach(r => idx[r.ano + "|" + r.mes + "|" + r.lab] = r.valor);
+  linhasTabela = recorte.slice().sort((a, b) => b.valor - a.valor).map(r => {
+    const meses = mesesDoAno(r.ano), i = meses.indexOf(r.mes);
+    const ant = i > 0 ? (idx[r.ano + "|" + meses[i - 1] + "|" + r.lab] || 0) : null;
+    return { ...r, share: r.valor / totalMes[r.ano + "-" + r.mes], varia: ant ? r.valor / ant - 1 : null, novo: ant === 0 };
+  });
+  pagina = 1;
+  renderTabela();
+}
+function renderTabela() {
+  const tb = $("tBody");
+  tb.innerHTML = "";
+  const totalPag = Math.max(1, Math.ceil(linhasTabela.length / POR_PAGINA));
+  pagina = Math.min(Math.max(1, pagina), totalPag);
+  const ini = (pagina - 1) * POR_PAGINA;
+  linhasTabela.slice(ini, ini + POR_PAGINA).forEach(r => {
+    const tr = document.createElement("tr");
+    const td = (txt, cls) => { const c = document.createElement("td"); c.textContent = txt; if (cls) c.className = cls; tr.appendChild(c); return c; };
+    td(r.lab); td(MESES[r.mes - 1]); td(brl.format(r.valor), "num"); td(pct(r.share, 2), "num");
+    if (r.varia == null) td(r.novo ? "novo no mês" : "-", "num");
+    else td((r.varia >= 0 ? "▲ +" : "▼ ") + pct(r.varia), "num " + (r.varia >= 0 ? "delta-up" : "delta-down"));
+    tb.appendChild(tr);
+  });
+  if (!linhasTabela.length) {
+    const tr = document.createElement("tr"), c = document.createElement("td");
+    c.colSpan = 5; c.className = "vazio"; c.textContent = "Nenhum registro para os filtros selecionados.";
+    tr.appendChild(c); tb.appendChild(tr);
+  }
+  $("tInfo").textContent = linhasTabela.length
+    ? `${ini + 1}–${Math.min(ini + POR_PAGINA, linhasTabela.length)} de ${linhasTabela.length} registros (página ${pagina} de ${totalPag})`
+    : "0 registros";
+  $("btnAnt").disabled = pagina <= 1;
+  $("btnProx").disabled = pagina >= totalPag;
+}
+$("btnAnt").addEventListener("click", () => { pagina--; renderTabela(); });
+$("btnProx").addEventListener("click", () => { pagina++; renderTabela(); });
+
+// ---------- orquestração ----------
+function atualizar() {
+  const f = filtros();
+  definirCores(f.ano);
+  const recorte = REG.filter(r => r.ano === f.ano && (!f.mes || r.mes === f.mes) && (!f.lab || r.lab === f.lab));
+  atualizarKPIs(f, recorte);
+  graficoEvolucao(f, recorte);
+  graficoTotalMes(f);
+  graficoParticipacao(f, recorte);
+  atualizarInsights(f);
+  montarTabela(recorte);
+}
+
+$("atualizado").textContent = `Dados atualizados em ${DADOS.geradoEm} · ${ANOS.join(", ")}`;
+$("rodape").textContent = `Fonte: ${DADOS.fonte}`;
+if (DADOS.avisos.length) {
+  const box = $("avisos");
+  const s = document.createElement("summary");
+  s.textContent = `Avisos da planilha (${DADOS.avisos.length}): linhas ignoradas ou corrigidas na leitura`;
+  const ul = document.createElement("ul");
+  DADOS.avisos.forEach(a => { const li = document.createElement("li"); li.textContent = a; ul.appendChild(li); });
+  box.append(s, ul); box.hidden = false;
+}
+$("fAno").value = ANOS[ANOS.length - 1];
+preencherMeses();
+preencherLabs();
+atualizar();
+</script>
+</body>
+</html>
